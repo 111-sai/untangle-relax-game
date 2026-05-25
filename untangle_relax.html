@@ -3,37 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Untangle · 优雅解谜 | 全面屏适配</title>
+    <title>Untangle · 全屏解谜</title>
     <style>
         * {
             user-select: none;
             -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
         }
         body {
             margin: 0;
-            min-height: 100vh;
+            padding: 0;
             background: radial-gradient(circle at 30% 10%, #19212b, #0f141c);
-            display: flex;
-            justify-content: center;
-            align-items: center;
             font-family: 'Segoe UI', 'Quicksand', 'Inter', system-ui, sans-serif;
-            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
         }
+        /* 主容器：无内外边距，宽度全屏 */
         .game-master {
+            width: 100%;
             background: rgba(30, 38, 48, 0.75);
             backdrop-filter: blur(12px);
-            border-radius: 40px;
-            padding: 12px;
-            box-shadow: 0 20px 35px rgba(0,0,0,0.4);
-            width: 100%;
-            max-width: 100%;
-            box-sizing: border-box;
+            padding: 0;
+            box-shadow: none;
         }
-        /* 关键：19.5:9 比例容器 */
+        /* 画布容器：严格 19.5:9 比例，宽度 100% */
         .canvas-wrapper {
             width: 100%;
             aspect-ratio: 19.5 / 9;
             position: relative;
+            background: #fefaf0;
         }
         canvas {
             display: block;
@@ -42,26 +43,24 @@
             left: 0;
             width: 100%;
             height: 100%;
-            border-radius: 28px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
             background: #fefaf0;
             cursor: grab;
             touch-action: none;
         }
-        canvas:active { cursor: grabbing; }
-
-        /* 信息面板 - 移动端紧凑布局 */
+        canvas:active {
+            cursor: grabbing;
+        }
+        /* 信息面板：紧凑，不溢出 */
         .info-dashboard {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
             align-items: center;
             gap: 8px;
-            margin-top: 14px;
             background: #212b34c9;
             backdrop-filter: blur(8px);
-            border-radius: 40px;
             padding: 8px 12px;
+            margin: 8px 0;
         }
         .stat-card {
             background: #2c1f2f80;
@@ -91,7 +90,10 @@
             box-shadow: 0 3px 0 #916e3e;
             transition: 0.05s linear;
         }
-        button:active { transform: translateY(2px); box-shadow: 0 1px 0 #916e3e; }
+        button:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #916e3e;
+        }
         .btn-next {
             background: linear-gradient(135deg, #a6d6a6, #6f9e6f);
             box-shadow: 0 3px 0 #3c623c;
@@ -103,6 +105,7 @@
             font-size: 0.65rem;
             color: #ffd58c;
             text-align: center;
+            white-space: nowrap;
         }
         .flex-row {
             display: flex;
@@ -110,12 +113,14 @@
             justify-content: space-between;
             align-items: center;
             gap: 8px;
-            margin-top: 12px;
+            padding: 8px 12px;
         }
+        /* 手机小屏下文字略缩 */
         @media (max-width: 550px) {
             .stat-card { font-size: 0.7rem; padding: 2px 8px; }
             .stat-value { font-size: 1rem; }
             button { padding: 4px 10px; font-size: 0.7rem; }
+            .achievement-badge { font-size: 0.6rem; white-space: normal; }
         }
     </style>
 </head>
@@ -164,7 +169,7 @@
         const nextBtn = document.getElementById('nextBtn');
         const progressMsgDiv = document.getElementById('progressMsg');
 
-        // ---------- 生成关卡 (适配窄长画布，调整边距) ----------
+        // 生成关卡 (边距适配窄长画布)
         function generateLevelData(level) {
             let nodeCount = 4;
             if(level === 1) nodeCount = 4;
@@ -175,8 +180,7 @@
             else if(level <= 11) nodeCount = 9;
             else nodeCount = Math.min(10 + Math.floor((level-10)/2), 12);
             
-            // 边距动态适配
-            let marginX = 45, marginY = 35;
+            let marginX = 45, marginY = 30;
             let newNodes = [];
             for(let i=0;i<nodeCount;i++) {
                 let x = marginX + Math.random() * (width - marginX*2);
@@ -184,7 +188,6 @@
                 newNodes.push({ id: i, x, y });
             }
             
-            // 生成随机连通图
             let edgesSet = new Set();
             let connected = new Set([0]);
             let unconnected = [...Array(nodeCount).keys()].slice(1);
@@ -224,7 +227,6 @@
             return { nodes: newNodes, edges: newEdges };
         }
         
-        // 相交检测
         function segIntersect(p1,p2,p3,p4) {
             function orient(a,b,c) {
                 return (b.x-a.x)*(c.y-a.y) - (b.y-a.y)*(c.x-a.x);
@@ -307,7 +309,7 @@
             edges = levelData.edges;
             for(let n of nodes) {
                 n.x = Math.min(Math.max(n.x, 35), width-35);
-                n.y = Math.min(Math.max(n.y, 30), height-30);
+                n.y = Math.min(Math.max(n.y, 25), height-25);
             }
             dragIndex = -1;
             isDragging = false;
@@ -329,7 +331,7 @@
             edges = levelData.edges;
             for(let n of nodes) {
                 n.x = Math.min(Math.max(n.x, 35), width-35);
-                n.y = Math.min(Math.max(n.y, 30), height-30);
+                n.y = Math.min(Math.max(n.y, 25), height-25);
             }
             dragIndex = -1;
             successAnimation = false;
@@ -340,7 +342,6 @@
         
         function drawCanvasAnimated() {
             ctx.clearRect(0,0,width,height);
-            // 网格背景
             ctx.strokeStyle = "#ddd2b8";
             ctx.lineWidth = 0.6;
             for(let i=0;i<width;i+=35){
@@ -349,7 +350,6 @@
                 ctx.beginPath();
                 ctx.moveTo(0,i); ctx.lineTo(width,i); ctx.stroke();
             }
-            // 边线
             for(let edge of edges) {
                 let fromNode = nodes[edge[0]];
                 let toNode = nodes[edge[1]];
@@ -367,7 +367,6 @@
                 ctx.lineWidth = 1.2;
                 ctx.stroke();
             }
-            // 节点半径稍小以适应窄长屏
             let radius = 12;
             for(let i=0;i<nodes.length;i++) {
                 let n = nodes[i];
@@ -395,7 +394,6 @@
                     ctx.stroke();
                 }
             }
-            // 成功特效
             if(successAnimation && countCrossings() === 0) {
                 ctx.globalAlpha = 0.5 + Math.sin(Date.now()*0.01)*0.25;
                 ctx.fillStyle = "#eaffb2";
@@ -419,7 +417,6 @@
             }
         }
         
-        // 获取触摸坐标（基于实际画布尺寸映射）
         function getCanvasCoords(e) {
             const rect = canvas.getBoundingClientRect();
             const scaleX = canvas.width / rect.width;
@@ -514,7 +511,7 @@
             edges = initial.edges;
             for(let n of nodes){
                 n.x = Math.min(Math.max(n.x, 40), width-40);
-                n.y = Math.min(Math.max(n.y, 30), height-30);
+                n.y = Math.min(Math.max(n.y, 25), height-25);
             }
             updateCrossUI();
             bindEvents();
