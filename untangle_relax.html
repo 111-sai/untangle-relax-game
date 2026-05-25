@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Untangle · 优雅解谜 | 完美适配手机</title>
+    <title>Untangle · 优雅解谜 | 全面屏适配</title>
     <style>
         * {
             user-select: none;
@@ -29,15 +29,23 @@
             max-width: 100%;
             box-sizing: border-box;
         }
+        /* 关键：19.5:9 比例容器 */
+        .canvas-wrapper {
+            width: 100%;
+            aspect-ratio: 19.5 / 9;
+            position: relative;
+        }
         canvas {
             display: block;
-            margin: 0 auto;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             border-radius: 28px;
             box-shadow: 0 8px 20px rgba(0,0,0,0.3);
             background: #fefaf0;
             cursor: grab;
-            width: 100%;
-            height: auto;
             touch-action: none;
         }
         canvas:active { cursor: grabbing; }
@@ -113,7 +121,9 @@
 </head>
 <body>
 <div class="game-master">
-    <canvas id="untangleCanvas" width="600" height="450"></canvas>
+    <div class="canvas-wrapper">
+        <canvas id="untangleCanvas" width="780" height="360"></canvas>
+    </div>
     <div class="info-dashboard">
         <div class="stat-card">🌀 关卡 <span class="stat-value" id="levelNum">1</span></div>
         <div class="stat-card">✖️ 缠结数 <span class="stat-value" id="crossCount">0</span></div>
@@ -129,30 +139,13 @@
 
 <script>
     (function(){
-        // ---------- 自适应尺寸 ----------
+        // 画布逻辑分辨率固定为 780x360 (19.5:9)
         const canvas = document.getElementById('untangleCanvas');
         const ctx = canvas.getContext('2d');
-        
-        // 基础宽高比 4:3 (600x450)
-        let baseWidth = 600;
-        let baseHeight = 450;
-        let width = baseWidth, height = baseHeight;
-        
-        function resizeCanvas() {
-            const container = canvas.parentElement;
-            const maxWidth = Math.min(container.clientWidth, 600);
-            // 保持宽高比 600/450 = 1.333
-            canvas.width = baseWidth;
-            canvas.height = baseHeight;
-            canvas.style.width = `${maxWidth}px`;
-            canvas.style.height = 'auto';
-            width = baseWidth;
-            height = baseHeight;
-            // 重新绘制
-            if (nodes.length) drawCanvasAnimated();
-        }
-        window.addEventListener('resize', () => { resizeCanvas(); drawCanvasAnimated(); });
-        
+        const width = 780, height = 360;
+        canvas.width = width;
+        canvas.height = height;
+
         // 游戏数据
         let nodes = [];
         let edges = [];
@@ -171,7 +164,7 @@
         const nextBtn = document.getElementById('nextBtn');
         const progressMsgDiv = document.getElementById('progressMsg');
 
-        // ---------- 生成关卡 ----------
+        // ---------- 生成关卡 (适配窄长画布，调整边距) ----------
         function generateLevelData(level) {
             let nodeCount = 4;
             if(level === 1) nodeCount = 4;
@@ -182,14 +175,16 @@
             else if(level <= 11) nodeCount = 9;
             else nodeCount = Math.min(10 + Math.floor((level-10)/2), 12);
             
-            let margin = 55;
+            // 边距动态适配
+            let marginX = 45, marginY = 35;
             let newNodes = [];
             for(let i=0;i<nodeCount;i++) {
-                let x = margin + Math.random() * (width - margin*2);
-                let y = margin + Math.random() * (height - margin*2);
+                let x = marginX + Math.random() * (width - marginX*2);
+                let y = marginY + Math.random() * (height - marginY*2);
                 newNodes.push({ id: i, x, y });
             }
             
+            // 生成随机连通图
             let edgesSet = new Set();
             let connected = new Set([0]);
             let unconnected = [...Array(nodeCount).keys()].slice(1);
@@ -312,7 +307,7 @@
             edges = levelData.edges;
             for(let n of nodes) {
                 n.x = Math.min(Math.max(n.x, 35), width-35);
-                n.y = Math.min(Math.max(n.y, 35), height-35);
+                n.y = Math.min(Math.max(n.y, 30), height-30);
             }
             dragIndex = -1;
             isDragging = false;
@@ -334,7 +329,7 @@
             edges = levelData.edges;
             for(let n of nodes) {
                 n.x = Math.min(Math.max(n.x, 35), width-35);
-                n.y = Math.min(Math.max(n.y, 35), height-35);
+                n.y = Math.min(Math.max(n.y, 30), height-30);
             }
             dragIndex = -1;
             successAnimation = false;
@@ -347,7 +342,7 @@
             ctx.clearRect(0,0,width,height);
             // 网格背景
             ctx.strokeStyle = "#ddd2b8";
-            ctx.lineWidth = 0.8;
+            ctx.lineWidth = 0.6;
             for(let i=0;i<width;i+=35){
                 ctx.beginPath();
                 ctx.moveTo(i,0); ctx.lineTo(i,height); ctx.stroke();
@@ -363,17 +358,17 @@
                 ctx.moveTo(fromNode.x, fromNode.y);
                 ctx.lineTo(toNode.x, toNode.y);
                 ctx.strokeStyle = "#b99e78";
-                ctx.lineWidth = 3;
+                ctx.lineWidth = 2.8;
                 ctx.stroke();
                 ctx.beginPath();
                 ctx.moveTo(fromNode.x, fromNode.y);
                 ctx.lineTo(toNode.x, toNode.y);
                 ctx.strokeStyle = "#ffeecc";
-                ctx.lineWidth = 1.5;
+                ctx.lineWidth = 1.2;
                 ctx.stroke();
             }
-            // 节点（半径缩小，适应小屏触控）
-            let radius = 13;
+            // 节点半径稍小以适应窄长屏
+            let radius = 12;
             for(let i=0;i<nodes.length;i++) {
                 let n = nodes[i];
                 ctx.shadowBlur = 6;
@@ -387,11 +382,11 @@
                 ctx.fill();
                 ctx.fillStyle = "#fff5e3";
                 ctx.beginPath();
-                ctx.arc(n.x-2, n.y-2, 4, 0, Math.PI*2);
+                ctx.arc(n.x-2, n.y-2, 3.5, 0, Math.PI*2);
                 ctx.fill();
                 ctx.fillStyle = "#784e2a";
-                ctx.font = `bold ${radius-2}px "Segoe UI"`;
-                ctx.fillText(i+1, n.x-6, n.y+5);
+                ctx.font = `bold ${radius-1}px "Segoe UI"`;
+                ctx.fillText(i+1, n.x-5, n.y+4);
                 if(dragIndex === i) {
                     ctx.beginPath();
                     ctx.arc(n.x, n.y, radius+4, 0, Math.PI*2);
@@ -418,13 +413,13 @@
                 ctx.globalAlpha = 1;
             }
             if(countCrossings() === 0 && nodes.length){
-                ctx.font = `bold 22px "Segoe UI"`;
+                ctx.font = `bold 20px "Segoe UI"`;
                 ctx.fillStyle = "#5f874fcc";
-                ctx.fillText("✓ 完美解结", width-150, 45);
+                ctx.fillText("✓ 完美解结", width-130, 40);
             }
         }
         
-        // 触摸坐标映射（自适应canvas实际显示大小）
+        // 获取触摸坐标（基于实际画布尺寸映射）
         function getCanvasCoords(e) {
             const rect = canvas.getBoundingClientRect();
             const scaleX = canvas.width / rect.width;
@@ -474,8 +469,8 @@
             const { mx, my } = getCanvasCoords(e);
             let newX = mx + dragOffsetX;
             let newY = my + dragOffsetY;
-            newX = Math.min(Math.max(newX, 22), width-22);
-            newY = Math.min(Math.max(newY, 22), height-22);
+            newX = Math.min(Math.max(newX, 20), width-20);
+            newY = Math.min(Math.max(newY, 20), height-20);
             nodes[dragIndex].x = newX;
             nodes[dragIndex].y = newY;
             updateCrossUI();
@@ -514,13 +509,12 @@
         }
         
         function init() {
-            resizeCanvas();
             let initial = generateLevelData(1);
             nodes = initial.nodes;
             edges = initial.edges;
             for(let n of nodes){
                 n.x = Math.min(Math.max(n.x, 40), width-40);
-                n.y = Math.min(Math.max(n.y, 40), height-40);
+                n.y = Math.min(Math.max(n.y, 30), height-30);
             }
             updateCrossUI();
             bindEvents();
